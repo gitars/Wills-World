@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/paper.js/0.9.9/paper.js"></script>
+    <script>
+    window.onload = function() {
+      paper.setup(document.getElementById('game'));
+      paper.install(window);
+
+      var gameWidth = 500;
+      var gameHeight = 500;
+      var over = false;
+      var toWin = 1500;
+
+      var hexagons = [];
+      var hexagon;
+      // Define the starting point of the hexagons and the radius
+      var i1 = 75
+      var j1 = 105
+      var r = 50;
+      // Width and Height magic numbers given the radius of 50
+      var width = 86
+      var height = 152
+      var i2 = i1 + width/2
+      var j2 = j1 + height/2
+      var cx, cy, isOdd;
+      var rows = 5;
+      var cols = 4;
+
+      // Draw the hexagons
+      function newHexagon(cx, cy){
+        hexagon = new Path.RegularPolygon(new Point(cx, cy), 6, r);
+        hexagon.fillColor = '#ffffff';
+        hexagon.selected = true;
+        hexagons.push(hexagon);
+      }
+
+      // Its complicated so the order of the hexagons in the list are as you would expect
+      for(var x = 0; x < rows; x++){
+        for(var y = 0; y < cols + !(x % 2) ; y++){
+          if(!(x % 2)){
+            cx = i1+width*y;
+            cy = j1+height*(x/2);
+          } else{
+            cx = i2+width*y;
+            cy = j2+height*((x-1)/2);
+          }
+          newHexagon(cx, cy);
+        }
+      }
+
+      // Define the balls
+      var bradius = 20;
+      var p1 = new Path.Circle({
+        center: new Point(hexagons[0].position.x, hexagons[0].position.y),
+        radius: bradius,
+        fillColor: 'blue'
+      });
+      p1.vel = new Object();
+      p1.vel.x = 0;
+      p1.vel.y = 0;
+
+      var p2 = new Path.Circle({
+        center: new Point(hexagons[hexagons.length-1].position.x, hexagons[hexagons.length-1].position.y),
+        radius: bradius,
+        fillColor: 'green'
+      });
+      p2.vel = new Object();
+      p2.vel.x = 0;
+      p2.vel.y = 0;
+
+      // Set balls velocity
+      var move = 4;
+      addEventListener("keydown", function(event){
+        if(event.which == 37){
+          p1.vel.x = -move;
+        } else if (event.which == 38){
+          p1.vel.y = -move;
+        } else if (event.which == 39){
+          p1.vel.x = move;
+        } else if (event.which == 40){
+          p1.vel.y = move;
+        } else if(event.which == 65){
+          p2.vel.x = -move;
+        } else if (event.which == 87){
+          p2.vel.y = -move;
+        } else if (event.which == 68){
+          p2.vel.x = move;
+        } else if (event.which == 83){
+          p2.vel.y = move;
+        }
+      });
+
+      addEventListener("keyup", function(event){
+        if(event.which == 37){
+          p1.vel.x = 0;
+        } else if (event.which == 38){
+          p1.vel.y = 0;
+        } else if (event.which == 39){
+          p1.vel.x = 0;
+        } else if (event.which == 40){
+          p1.vel.y = 0;
+        } else if(event.which == 65){
+          p2.vel.x = 0;
+        } else if (event.which == 87){
+          p2.vel.y = 0;
+        } else if (event.which == 68){
+          p2.vel.x = 0;
+        } else if (event.which == 83){
+          p2.vel.y = 0;
+        }
+      });
+
+      // Score Text
+      var score1 = new PointText({
+        point: new Point(10, 20),
+        content: 'Player 1: 0',
+        justification: 'left',
+        fontSize: 15
+      });
+
+      var score2 = new PointText({
+        point: new Point(10, 40),
+        content: 'Player 2: 0',
+        justification: 'left',
+        fontSize: 15
+      });
+
+      var winner = new PointText({
+        point: view.center,
+        content: '',
+        justification: 'center',
+        fontSize: 50
+      });
+
+
+      function clamp(a, b, c) {
+        if (a < b) {
+          return b;
+        } else if(a > c) {
+          return c;
+        } else {
+          return a;
+        }
+      }
+
+      // Move players and calculate score
+      view.onFrame = function(event) {
+        if(over) return;
+        // The close you are to the center of the hexagon, the faster the color changes. Only 2 rates of change not linear
+        var rate1 = r/6;
+        var rate2 = r/2
+        var changeRate1 = .06;
+        var changeRate2 = .03;
+        var blueScore = 0;
+        var greenScore = 0;
+        p1.position.x = clamp(p1.position.x + p1.vel.x, 0 + bradius/2, gameWidth - bradius/2);
+        p1.position.y = clamp(p1.position.y + p1.vel.y, 0 + bradius/2, gameHeight - bradius/2);
+        p2.position.x = clamp(p2.position.x + p2.vel.x, 0 + bradius/2, gameWidth - bradius/2);
+        p2.position.y = clamp(p2.position.y + p2.vel.y, 0 + bradius/2, gameHeight - bradius/2);
+
+        for(var i = 0; i < hexagons.length; i++){
+          if(Math.abs(hexagons[i].position.x - p1.position.x) < rate1 && Math.abs(hexagons[i].position.y - p1.position.y) < rate1){
+            hexagons[i].fillColor.blue = Math.min(hexagons[i].fillColor.blue + changeRate1, 1);
+            hexagons[i].fillColor.red = Math.max(hexagons[i].fillColor.red - changeRate1, 0);
+            hexagons[i].fillColor.green = Math.max(hexagons[i].fillColor.green - changeRate1, 0);
+          } else if(Math.abs(hexagons[i].position.x - p1.position.x) < rate2 && Math.abs(hexagons[i].position.y - p1.position.y) < rate2){
+            hexagons[i].fillColor.blue = Math.min(hexagons[i].fillColor.blue + changeRate2, 1);
+            hexagons[i].fillColor.red = Math.max(hexagons[i].fillColor.red - changeRate2, 0);
+            hexagons[i].fillColor.green = Math.max(hexagons[i].fillColor.green - changeRate2, 0);
+          }
+
+          if(Math.abs(hexagons[i].position.x - p2.position.x) < rate1 && Math.abs(hexagons[i].position.y - p2.position.y) < rate1){
+            hexagons[i].fillColor.red = Math.max(hexagons[i].fillColor.red - changeRate1, 0);
+            hexagons[i].fillColor.blue = Math.max(hexagons[i].fillColor.blue - changeRate1, 0);
+            hexagons[i].fillColor.green = Math.min(hexagons[i].fillColor.green + changeRate1, 1);
+          } else if(Math.abs(hexagons[i].position.x - p2.position.x) < rate2 && Math.abs(hexagons[i].position.y - p2.position.y) < rate2){
+            hexagons[i].fillColor.red = Math.max(hexagons[i].fillColor.red - changeRate2, 0);
+            hexagons[i].fillColor.blue = Math.max(hexagons[i].fillColor.blue - changeRate2, 0);
+            hexagons[i].fillColor.green = Math.min(hexagons[i].fillColor.green + changeRate2, 1);
+          }
+
+          blueScore += (1 - hexagons[i].fillColor.green);
+          greenScore += (1 - hexagons[i].fillColor.blue);
+
+        }
+
+        blueScore = Math.floor(blueScore.toFixed(2) * 100);
+        greenScore = Math.floor(greenScore.toFixed(2) * 100);
+        score1.content = "Player 1: " + String(blueScore);
+        score2.content = "Player 2: " + String(greenScore);
+
+        if(blueScore >= toWin){
+          winner.content = "Player 1 Wins";
+          over = true;
+        } else if(greenScore >= toWin){
+          winner.content = "Player 2 Wins";
+          over = true;
+        }
+
+      }
+
+      view.draw();
+    }
+    </script>
+  </head>
+  <body>
+    <canvas id="game" width="500" height="500" style="border:1px solid black;"></canvas>
+  </body>
+</html>
