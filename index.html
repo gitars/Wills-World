@@ -1,9 +1,15 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <style>
+      #start{
+        background-image: url('https://scontent-b-ord.xx.fbcdn.net/hphotos-frc3/530895_10151120999718947_2074224801_n.jpg');
+      }
+    </style>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/paper.js/0.9.9/paper.js"></script>
     <script>
-    window.onload = function() {
+    function game() {
+      document.getElementById('start').style.display = "none";
       paper.setup(document.getElementById('game'));
       paper.install(window);
 
@@ -76,7 +82,7 @@
     p2.canMove = 0;
 
     var freeze = new Path.Star({
-        center: new Point(-10, -10),
+        center: new Point(-50, -50),
         points: 8,
         radius1: pradius,
         radius2: bradius,
@@ -84,6 +90,17 @@
         strokeWidth: 2,
         strokeColor: '#00c9d4'
     });
+    freeze.pupid = 0;
+
+    var get_random = new Path.RegularPolygon({
+      center: new Point(-50, -50),
+      sides: 8,
+      radius: pradius,
+      fillColor: '#ff1723',
+      strokeWidth: 2,
+      strokeColor: '#fc888e'
+    });
+    get_random.pupid = 1;
 
       // Set balls velocity
       var move = 4;
@@ -149,7 +166,6 @@
         fontSize: 50
       });
 
-
       function clamp(a, b, c) {
         if (a < b) {
           return b;
@@ -162,35 +178,67 @@
 
 
       // Move players and calculate score
-       var since_last_powerup = 0;
+      var since_last_powerup = 0;
+      var powerups = [];
+      powerups.push(freeze);
+      powerups.push(get_random);
+      var active_powerup = powerups[0];
+      var pup_active = false;
       // Move players and calculate score
       view.onFrame = function(event) {
         if(over) return;
         since_last_powerup += 1;
 
         //Spawn a new powerup every so often
-        if (since_last_powerup == 500) {
+        if (since_last_powerup == 50 && !(pup_active)) {
             //Freeze is the only powerup so far
+            var pup_index = Math.floor((Math.random() * (powerups.length)));
             var hexr = Math.floor((Math.random() * (hexagons.length-1)));
-            freeze.position.x = hexagons[hexr].position.x;
-            freeze.position.y = hexagons[hexr].position.y;
+            active_powerup = powerups[pup_index];
+            active_powerup.position.x = hexagons[hexr].position.x;
+            active_powerup.position.y = hexagons[hexr].position.y;
             since_last_powerup = 0;
-            //console.log(hexagons[hexr].position.x + "\t" + hexagons[hexr].position.y);
+            pup_active = true;
         }
+        if (pup_active) {
+          active_powerup.rotate(3);
+          //Player 1
+          var intersections1 = active_powerup.getIntersections(p1);
+          if(intersections1.length != 0){
+            console.log(active_powerup.id);
+            if (active_powerup.pupid == 0){
+              p2.canMove = 50;
+            } 
+            else if (active_powerup.pupid == 1) {
+              console.log("Get_random hit by player 1");
+              var hexr = Math.floor((Math.random() * (hexagons.length - 1)));
+              hexagons[hexr].fillColor.blue = 1;
+              hexagons[hexr].fillColor.red = 0;
+              hexagons[hexr].fillColor.green = 0;
+            }
+            active_powerup.position.x = -50;
+            since_last_powerup = 0;
+            pup_active = false;
+          }
 
-        var intersections1 = freeze.getIntersections(p1);
-        if(intersections1.length != 0){
-          p2.canMove = 50;
-          freeze.position.x = -50;
-          since_last_powerup = 0;
-        }
-        var intersections2 = freeze.getIntersections(p2);
-        if(intersections2.length != 0){
-          p1.canMove = 50;
-          freeze.position.x = -50;
-          since_last_powerup = 0;
-        }
-
+            //Player 2
+            var intersections2 = active_powerup.getIntersections(p2);
+          if(intersections2.length != 0){
+            if (active_powerup.pupid == 0){
+              p1.canMove = 50;
+            } 
+            else if (active_powerup.pupid == 1) {
+              console.log("Get_random hit by player 2");
+              var hexr = Math.floor((Math.random() * (hexagons.length - 1)));
+              hexagons[hexr].fillColor.blue = 0;
+              hexagons[hexr].fillColor.red = 0;
+              hexagons[hexr].fillColor.green = 1;
+            }
+            active_powerup.position.x = -50;
+            since_last_powerup = 0;
+            pup_active = false;
+          }
+        } 
         
         // The close you are to the center of the hexagon, the faster the color changes. Only 2 rates of change not linear
         var rate1 = r/6;
@@ -261,6 +309,8 @@
     </script>
   </head>
   <body>
-    <canvas id="game" width="500" height="500" style="border:1px solid black;"></canvas>
+  <canvas id="game" width="500" height="500" style="border:1px solid black;width:500px;height:500px;position:absolute;top:0px;left:0px;background-color:#555;"></canvas>
+  <div style="width:500px;height:500px;position:absolute;top:0px;left:0px;" id="start" onclick="javascript:game();"></div>
+    
   </body>
 </html>
