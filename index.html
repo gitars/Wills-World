@@ -49,25 +49,41 @@
         }
       }
 
-      // Define the balls
-      var bradius = 20;
-      var p1 = new Path.Circle({
+    // Define the balls
+    var bradius = 20;
+    //power up radius
+    var pradius = 15
+    var p1 = new Path.Circle({
         center: new Point(hexagons[0].position.x, hexagons[0].position.y),
         radius: bradius,
-        fillColor: 'blue'
-      });
-      p1.vel = new Object();
-      p1.vel.x = 0;
-      p1.vel.y = 0;
+        fillColor: '#00FFFF',
+        strokeColor: '#0000FF'
+    });
+    p1.vel = new Object();
+    p1.vel.x = 0;
+    p1.vel.y = 0;
+    p1.canMove = 0;
 
-      var p2 = new Path.Circle({
+    var p2 = new Path.Circle({
         center: new Point(hexagons[hexagons.length-1].position.x, hexagons[hexagons.length-1].position.y),
         radius: bradius,
-        fillColor: 'green'
-      });
-      p2.vel = new Object();
-      p2.vel.x = 0;
-      p2.vel.y = 0;
+        fillColor: 'green',
+        strokeColor: '#00FF00'
+    });
+    p2.vel = new Object();
+    p2.vel.x = 0;
+    p2.vel.y = 0;
+    p2.canMove = 0;
+
+    var freeze = new Path.Star({
+        center: new Point(-10, -10),
+        points: 8,
+        radius1: pradius,
+        radius2: bradius,
+        fillColor: '#a7d3ff',
+        strokeWidth: 2,
+        strokeColor: '#00c9d4'
+    });
 
       // Set balls velocity
       var move = 4;
@@ -144,9 +160,38 @@
         }
       }
 
+
+      // Move players and calculate score
+       var since_last_powerup = 0;
       // Move players and calculate score
       view.onFrame = function(event) {
         if(over) return;
+        since_last_powerup += 1;
+
+        //Spawn a new powerup every so often
+        if (since_last_powerup == 500) {
+            //Freeze is the only powerup so far
+            var hexr = Math.floor((Math.random() * (hexagons.length-1)));
+            freeze.position.x = hexagons[hexr].position.x;
+            freeze.position.y = hexagons[hexr].position.y;
+            since_last_powerup = 0;
+            //console.log(hexagons[hexr].position.x + "\t" + hexagons[hexr].position.y);
+        }
+
+        var intersections1 = freeze.getIntersections(p1);
+        if(intersections1.length != 0){
+          p2.canMove = 50;
+          freeze.position.x = -50;
+          since_last_powerup = 0;
+        }
+        var intersections2 = freeze.getIntersections(p2);
+        if(intersections2.length != 0){
+          p1.canMove = 50;
+          freeze.position.x = -50;
+          since_last_powerup = 0;
+        }
+
+        
         // The close you are to the center of the hexagon, the faster the color changes. Only 2 rates of change not linear
         var rate1 = r/6;
         var rate2 = r/2
@@ -154,10 +199,14 @@
         var changeRate2 = .03;
         var blueScore = 0;
         var greenScore = 0;
-        p1.position.x = clamp(p1.position.x + p1.vel.x, 0 + bradius/2, gameWidth - bradius/2);
-        p1.position.y = clamp(p1.position.y + p1.vel.y, 0 + bradius/2, gameHeight - bradius/2);
-        p2.position.x = clamp(p2.position.x + p2.vel.x, 0 + bradius/2, gameWidth - bradius/2);
-        p2.position.y = clamp(p2.position.y + p2.vel.y, 0 + bradius/2, gameHeight - bradius/2);
+        if(!p1.canMove){
+          p1.position.x = clamp(p1.position.x + p1.vel.x, 0 + bradius/2, gameWidth - bradius/2);
+          p1.position.y = clamp(p1.position.y + p1.vel.y, 0 + bradius/2, gameHeight - bradius/2);
+        }
+        if(!p2.canMove){
+          p2.position.x = clamp(p2.position.x + p2.vel.x, 0 + bradius/2, gameWidth - bradius/2);
+          p2.position.y = clamp(p2.position.y + p2.vel.y, 0 + bradius/2, gameHeight - bradius/2);
+        }
 
         for(var i = 0; i < hexagons.length; i++){
           if(Math.abs(hexagons[i].position.x - p1.position.x) < rate1 && Math.abs(hexagons[i].position.y - p1.position.y) < rate1){
@@ -196,6 +245,13 @@
         } else if(greenScore >= toWin){
           winner.content = "Player 2 Wins";
           over = true;
+        }
+
+        if(p1.canMove != 0){
+          p1.canMove--;
+        }
+        if(p2.canMove != 0){
+          p2.canMove--;
         }
 
       }
